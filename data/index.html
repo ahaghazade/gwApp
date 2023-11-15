@@ -1,0 +1,84 @@
+<!DOCTYPE HTML><html>
+<head>
+  <title>PGS SYSTEM</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+  <div class="topnav">
+    <h3>PGS SYSTEM</h3>
+  </div>
+  <div class="content">
+    <div id = "dashboard" class="cards"></div>
+  </div>
+<script>
+var gateway = `ws://${window.location.hostname}/ws`;
+  var websocket;
+  window.addEventListener('load', onLoad);
+  function initWebSocket() {
+    console.log('Trying to open a WebSocket connection...');
+    websocket = new WebSocket(gateway);
+    websocket.onopen    = onOpen;
+    websocket.onclose   = onClose;
+    websocket.onmessage = onMessage; // <-- add this line
+  }
+  function onOpen(event) {
+    console.log('Connection opened');
+  }
+  function onClose(event) {
+    console.log('Connection closed');
+    setTimeout(initWebSocket, 2000);
+  }
+  function onMessage(event) {
+  console.log("new_readings", event.data);
+  var obj = JSON.parse(event.data);
+
+  //insert sensor to dashboard
+  const dashboard = document.getElementById("dashboard");
+  const element = document.getElementById(obj.Node);
+  if (element == null) // id number does not exist(avoiding multiple append)
+  {
+    //add temp card
+    const div = document.createElement("div");
+    div.className = "card temperature"
+    div.id        = obj.Node
+    div.innerHTML = '<h4><i class="fas fa-thermometer-half"></i> BOARD #' + div.id + ' - TEMPERATURE</h4><p><span class="reading"><span id="t' + div.id + '"></span> &deg;C</span></p><p class="packet">Reading ID: <span id="rt' + div.id + '"></span></p>';
+    dashboard.appendChild(div);
+    //add humidity card
+    const div2 = document.createElement("div");
+    div2.className = "card humidity"
+    div2.id        = obj.Node
+    div2.innerHTML = '<h4><i class="fas fa-tint"></i> BOARD #' + div.id + ' - HUMIDITY</h4><p><span class="reading"><span id="h' + div.id + '"></span> &percnt;</span></p><p class="packet">Reading ID: <span id="rh' + div.id + '"></span></p>';
+    dashboard.appendChild(div2);
+    //add pressure card
+    const div3 = document.createElement("div");
+    div3.className = "card pressure"
+    div3.id        = obj.Node
+    div3.innerHTML = '<h4><i class="fas fa-weight-hanging"></i> BOARD #' + div.id + ' - PRESSURE</h4><p><span class="reading"><span id="p' + div.id + '"></span> Pa</span></p><p class="packet">Reading ID: <span id="rp' + div.id + '"></span></p>';
+    dashboard.appendChild(div3);
+  }
+
+
+  document.getElementById("t"+obj.Node).innerHTML = obj.Temp;
+  document.getElementById("h"+obj.Node).innerHTML = obj.Humidity;
+  document.getElementById("p"+obj.Node).innerHTML = obj.Pressure;
+  document.getElementById("rt"+obj.Node).innerHTML = obj.readingId;
+  document.getElementById("rh"+obj.Node).innerHTML = obj.readingId;
+  document.getElementById("rp"+obj.Node).innerHTML = obj.readingId;
+
+ }
+ function onLoad(event) {
+    initWebSocket();
+    // initButton();
+  }
+  // function initButton() {
+  //   document.getElementById('button').addEventListener('click', toggle);
+  // }
+  // function toggle(){
+  //   websocket.send('toggle');
+  // }
+</script>
+</body>
+</html>

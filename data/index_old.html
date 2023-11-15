@@ -1,0 +1,78 @@
+<!DOCTYPE HTML><html>
+<head>
+  <title>PGS SYSTEM</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+  <div class="topnav">
+    <h3>PGS SYSTEM</h3>
+  </div>
+  <div class="content">
+    <div class="cards">
+
+      <div class="card temperature">
+        <h4><i class="fas fa-thermometer-half"></i> BOARD #1 - TEMPERATURE</h4><p><span class="reading"><span id="t1"></span> &deg;C</span></p><p class="packet">Reading ID: <span id="rt1"></span></p>
+      </div>
+      <div class="card humidity">
+        <h4><i class="fas fa-tint"></i> BOARD #1 - HUMIDITY</h4><p><span class="reading"><span id="h1"></span> &percnt;</span></p><p class="packet">Reading ID: <span id="rh1"></span></p>
+      </div>
+      <div class="card pressure">
+        <h4><i class="fas fa-weight-hanging"></i> BOARD #1 - PRESSURE</h4><p><span class="reading"><span id="p1"></span> Pa</span></p><p class="packet">Reading ID: <span id="rp1"></span></p>
+      </div>
+
+      <div class="card temperature">
+        <h4><i class="fas fa-thermometer-half"></i> BOARD #2 - SLOT</h4><p><span class="reading"><span id="t2"></span> &deg;C</span></p><p class="packet">Reading ID: <span id="rt2"></span></p>
+      </div>
+      <div class="card humidity">
+        <h4><i class="fas fa-tint"></i> BOARD #2 - HUMIDITY</h4><p><span class="reading"><span id="h2"></span> &percnt;</span></p><p class="packet">Reading ID: <span id="rh2"></span></p>
+      </div>
+      <div class="card pressure">
+        <h4><i class="fas fa-weight-hanging"></i> BOARD #2 - PRESSURE</h4><p><span class="reading"><span id="p2"></span> Pa</span></p><p class="packet">Reading ID: <span id="rp2"></span></p>
+      </div>
+    </div>
+  </div>
+<script>
+var gateway = `ws://${window.location.hostname}/ws`;
+  var websocket;
+  window.addEventListener('load', onLoad);
+  function initWebSocket() {
+    console.log('Trying to open a WebSocket connection...');
+    websocket = new WebSocket(gateway);
+    websocket.onopen    = onOpen;
+    websocket.onclose   = onClose;
+    websocket.onmessage = onMessage; // <-- add this line
+  }
+  function onOpen(event) {
+    console.log('Connection opened');
+  }
+  function onClose(event) {
+    console.log('Connection closed');
+    setTimeout(initWebSocket, 2000);
+  }
+  function onMessage(event) {
+  console.log("new_readings", event.data);
+  var obj = JSON.parse(event.data);
+  document.getElementById("t"+obj.Node).innerHTML = obj.Temp;
+  document.getElementById("h"+obj.Node).innerHTML = obj.Humidity;
+  document.getElementById("p"+obj.Node).innerHTML = obj.Pressure;
+  document.getElementById("rt"+obj.Node).innerHTML = obj.readingId;
+  document.getElementById("rh"+obj.Node).innerHTML = obj.readingId;
+  document.getElementById("rp"+obj.Node).innerHTML = obj.readingId;
+
+ }
+ function onLoad(event) {
+    initWebSocket();
+    // initButton();
+  }
+  // function initButton() {
+  //   document.getElementById('button').addEventListener('click', toggle);
+  // }
+  // function toggle(){
+  //   websocket.send('toggle');
+  // }
+</script>
+</body>
+</html>
