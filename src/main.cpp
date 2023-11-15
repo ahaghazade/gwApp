@@ -158,15 +158,13 @@ void RoomsAdds(JSONVar Room_Conf)
   {
     JSONVar add;
     //iterate on rooms addresses
-    for (int addCount = 0 ; addCount < Room_Conf["rooms"][room]["addresses"].length() ; addCount++)
-    {
-      Serial.println(Room_Conf["rooms"][room]["addresses"][addCount]);
-      add[addCount] = String(JSON.stringify(Room_Conf["rooms"][room]["addresses"][addCount]));
-    }
-    Serial.println(add);
+    // for (int addCount = 0 ; addCount < Room_Conf["rooms"][room]["addresses"].length() ; addCount++)
+    // {
+    //   add[addCount] = Room_Conf["rooms"][room]["addresses"][addCount];
+    // }
     Serial.println("/*/*/*/*/*/*/*/*/");
     Serial.println(Room_Conf["rooms"][room]["_id"]);
-    RoomsAdd[Room_Conf["rooms"][room]["_id"]] = add;
+    RoomsAdd[Room_Conf["rooms"][room]["_id"]] = Room_Conf["rooms"][room]["addresses"];
     Serial.println(RoomsAdd);
   }
 }
@@ -175,6 +173,7 @@ void setup() {
   Serial.begin(115200);
   pinMode(LED_BUILTIN, OUTPUT);
   wifiMulti.addAP("MobinNet20", "K6YJScyY");
+  wifiMulti.addAP("Irancell-TF-i60-B6A7_1", "@tm@1425#@tm@");
   WifiConnect(WifiSsid, WifiPassword , LEDPIN);
   delay(1000);
   //------------ GET CONFIGS FROM SERVER -----------------
@@ -186,9 +185,10 @@ void setup() {
   //Wait until Get rooms conf
   while(TotalRoomsConf == ""){Serial.println("\n---------------\nTry GET Rooms Confing...");TotalRoomsConf = GetConf(ROOM_URL, BUILDING_ID);delay(500);}
   RoomsConf = JSON.parse(TotalRoomsConf);
+  Serial.println(RoomsConf);
   Serial.println("+++++++++++++++++++");
   RoomsAdds(RoomsConf);
-  // PrintJson(RoomsConf);
+  Serial.println(RoomsConf["6549e908ea75d4a5df95ad2a"]);
   //Wait until Get addresses conf
   String TotalAddConf = "";
   while(TotalAddConf == ""){Serial.println("\n---------------\nTry GET Adds Confing...");TotalAddConf = GetConf(ADD_URL, BUILDING_ID);delay(500);}
