@@ -1,6 +1,10 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <Arduino_JSON.h>
+#include <WiFiMulti.h>
+
+WiFiMulti wifiMulti;
+// wifiMulti.addAP("ssid_from_AP_2", "your_password_for_AP_2");
 
 const char* WifiSsid = "MobinNet20";
 const char* WifiPassword = "K6YJScyY";
@@ -29,13 +33,11 @@ String Token = "";
 //---------------------------*-----------------
 void WifiConnect(String SSID , String PASS , int LedPin)
 {
-  WiFi.begin(SSID, PASS);
-    Serial.println("Connecting");
-    while(WiFi.status() != WL_CONNECTED) {
-      delay(500);
-      Serial.print(".");
-      digitalWrite(LedPin , !digitalRead(LedPin));
-    }
+  if(wifiMulti.run() != WL_CONNECTED) {
+  Serial.println("WiFi not connected!");
+  digitalWrite(LedPin , !digitalRead(LedPin));
+  delay(500);
+  }
   digitalWrite(LedPin , LOW);
   Serial.println("");
   Serial.print("Connected to WiFi network with IP Address: ");
@@ -172,6 +174,7 @@ void RoomsAdds(JSONVar Room_Conf)
 void setup() {
   Serial.begin(115200);
   pinMode(LED_BUILTIN, OUTPUT);
+  wifiMulti.addAP("MobinNet20", "K6YJScyY");
   WifiConnect(WifiSsid, WifiPassword , LEDPIN);
   delay(1000);
   //------------ GET CONFIGS FROM SERVER -----------------
