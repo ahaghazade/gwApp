@@ -183,18 +183,35 @@ String CalReadAdss(String RoomID , String RoomsConfigs, int RoomJsonSize, String
   //RoomsConfigs --> {"_id": "6549e908ea75d4a5df95ad2a", "addresses": ["6549e8bbea75d4a5df95ad11", "6549e937ea75d4a5df95ad3c" ] }
   //RoomsAddConfigs -->  {"_id": "6549e937ea75d4a5df95ad3c", "values": [],"format": "1 Byte (Unsigned)", "writeTo": "", "readFrom": "0/0/3","rangeType": "temprature"}
   DynamicJsonDocument RoomsConfJson(RoomJsonSize);
-  deserializeJson(RoomsConfJson, RoomsConfigs);
+  DeserializationError error = deserializeJson(RoomsConfJson, RoomsConfigs);
   DynamicJsonDocument AddsConfJson(AddsJsonSize);
-  deserializeJson(AddsConfJson, RoomsAddConfigs);
+  error = deserializeJson(AddsConfJson, RoomsAddConfigs);
 
+  if (error) {
+    Serial.print(F("deserializeJson() failed: "));
+    Serial.println(error.f_str());
+    return "NULL";
+  }
   // Access the JSON object
-  Serial.println("Start Parsing Json");
-  Serial.println(RoomsConfJson["roooms"].size());
-  Serial.println(RoomsConfJson["roooms"].as<String>());
-  // for(int roomnum = 0 ; roomnum < RoomsConfJson["roooms"].size() ; roomnum++)
-  // {
-  //   Serial.println(RoomsConfJson["roooms"][roomnum].as<String>());
-  // }
+  for(int roomnum = 0 ; roomnum < RoomsConfJson["rooms"].size() ; roomnum++)
+  {
+    for(int addnum = 0; addnum < RoomsConfJson["rooms"][roomnum]["addresses"].size() ; addnum++)
+    {
+      String RoomsAdds = RoomsConfJson["rooms"][roomnum]["addresses"][addnum];
+      for(int roomaddsnum = 0; roomaddsnum < AddsConfJson["addresses"].size(); roomaddsnum++)
+      {
+        String addID = AddsConfJson["addresses"][roomaddsnum]["_id"];
+        if(RoomsAdds == addID)
+        {
+          Serial.println("-----------------");
+          Serial.println(AddsConfJson["addresses"][roomaddsnum]["values"].as<String>());
+          Serial.println("+++++++++++++++++");
+        }
+      }
+    }
+  }
+
+
   return "Null";
 }
 
@@ -236,7 +253,7 @@ void setup() {
   while(TotalAddConf == ""){Serial.println("\n---------------\nTry GET Adds Confing...");TotalAddConf = GetConf(ADD_URL, BUILDING_ID, 15000, Addfilter);delay(500);}
   
   Serial.println("\n========Create Readble Adds with Configs========\n");
-  CalReadAdss(ROOM_ID, TotalRoomsConf, 1500, TotalAddConf, 1500);
+  CalReadAdss(ROOM_ID, TotalRoomsConf, 15000, TotalAddConf, 15000);
 }
 
 void loop() {
