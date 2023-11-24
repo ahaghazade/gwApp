@@ -190,38 +190,34 @@ String CalReadAdss(String RoomID , String RoomsConfigs, int RoomJsonSize, String
   //check all addresses in rooms
   for(int roomnum = 0 ; roomnum < RoomsConfJson["rooms"].size() ; roomnum++)
   {
-    String room_ID = RoomsConfJson["rooms"][roomnum]["_id"];
-    if(RoomID == room_ID) // room founded
-    {
-      JsonObject roomradd_format = ReadbleAdds.createNestedObject(room_ID);
+    String RoomID = RoomsConfJson["rooms"][roomnum]["_id"];
 
-      for(int addnum = 0; addnum < RoomsConfJson["rooms"][roomnum]["addresses"].size() ; addnum++)
+    for(int addnum = 0; addnum < RoomsConfJson["rooms"][roomnum]["addresses"].size() ; addnum++)
+    {
+      String RoomsAdds = RoomsConfJson["rooms"][roomnum]["addresses"][addnum];
+      for(int roomaddsnum = 0; roomaddsnum < AddsConfJson["addresses"].size(); roomaddsnum++)
       {
-        String RoomsAdds = RoomsConfJson["rooms"][roomnum]["addresses"][addnum];
-        for(int roomaddsnum = 0; roomaddsnum < AddsConfJson["addresses"].size(); roomaddsnum++)
+        String addID = AddsConfJson["addresses"][roomaddsnum]["_id"];
+        if(RoomsAdds == addID)
         {
-          String addID = AddsConfJson["addresses"][roomaddsnum]["_id"];
-          if(RoomsAdds == addID)
+          Serial.println(addID);
+          JsonObject roomradd_format = ReadbleAdds.createNestedObject(RoomID);
+          if(AddsConfJson["addresses"][roomaddsnum]["values"].size() == 0)
           {
-            Serial.println(addID);
-    
-            if(AddsConfJson["addresses"][roomaddsnum]["values"].size() == 0)
+            roomradd_format[AddsConfJson["addresses"][roomaddsnum]["readFrom"].as<String>()] = AddsConfJson["addresses"][roomaddsnum]["format"].as<String>();
+            // roomradd_format["add"] = AddsConfJson["addresses"][roomaddsnum]["readFrom"];
+            // roomradd_format["format"] = AddsConfJson["addresses"][roomaddsnum]["format"];
+          }
+          else
+          {
+            Serial.print("Founded List! seize: ");
+            Serial.println(AddsConfJson["addresses"][roomaddsnum]["values"].size());
+            for(int ValueNum = 0; ValueNum < AddsConfJson["addresses"][roomaddsnum]["values"].size(); ValueNum++)
             {
-              Serial.println("Founded!");
-              roomradd_format[AddsConfJson["addresses"][roomaddsnum]["readFrom"].as<String>()] = AddsConfJson["addresses"][roomaddsnum]["format"].as<String>();
-              // roomradd_format["add"] = AddsConfJson["addresses"][roomaddsnum]["readFrom"];
-              // roomradd_format["format"] = AddsConfJson["addresses"][roomaddsnum]["format"];
-            }
-            else
-            {
-              Serial.print("Founded List! seize: ");
-              Serial.println(AddsConfJson["addresses"][roomaddsnum]["values"].size());
-              for(int ValueNum = 0; ValueNum < AddsConfJson["addresses"][roomaddsnum]["values"].size(); ValueNum++)
-              {
-                serializeJsonPretty(AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum], Serial);
-                Serial.println();
-                roomradd_format[AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum]["read"].as<String>()] = AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum]["readFormat"].as<String>();
-              }
+              serializeJsonPretty(roomradd_format["add"] = AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum], Serial);
+              roomradd_format[AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum]["read"].as<String>()] = AddsConfJson["addresses"]["values"][ValueNum]["readFormat"].as<String>();
+              // roomradd_format["add"] = AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum]["read"];
+              // roomradd_format["format"] = AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum]["readFormat"];
             }
           }
         }
