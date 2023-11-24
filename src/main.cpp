@@ -17,6 +17,7 @@ WiFiMulti wifiMulti;
 #define LEDPIN BUILTIN_LED
 
 DynamicJsonDocument ReadbleAdds(2000); //{"roomID" : {"add" : , "format" : }}
+DynamicJsonDocument WritableAdds(2000); //{"1/1/2" : "format"}
 
 unsigned long lastTime = 0;
 unsigned long timerDelay = 5000;
