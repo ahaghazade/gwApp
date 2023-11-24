@@ -172,7 +172,7 @@ String GetConf(String URL, String BuildingID, int JsonCapacity , StaticJsonDocum
   return FilteredRes;
 }
 
-String CalReadAdss(String RoomID , String RoomsConfigs, int RoomJsonSize, String RoomsAddConfigs, int AddsJsonSize)
+String CalReadWriteAdss(String RoomID , String RoomsConfigs, int RoomJsonSize, String RoomsAddConfigs, int AddsJsonSize)
 {
   //RoomsConfigs --> {"_id": "6549e908ea75d4a5df95ad2a", "addresses": ["6549e8bbea75d4a5df95ad11", "6549e937ea75d4a5df95ad3c" ] }
   //RoomsAddConfigs -->  {"_id": "6549e937ea75d4a5df95ad3c", "values": [],"format": "1 Byte (Unsigned)", "writeTo": "", "readFrom": "0/0/3","rangeType": "temprature"}
@@ -209,7 +209,10 @@ String CalReadAdss(String RoomID , String RoomsConfigs, int RoomJsonSize, String
             if(AddsConfJson["addresses"][roomaddsnum]["values"].size() == 0)
             {
               Serial.println("Founded!");
-              roomradd_format[AddsConfJson["addresses"][roomaddsnum]["readFrom"].as<String>()] = AddsConfJson["addresses"][roomaddsnum]["format"].as<String>();
+              if (AddsConfJson["addresses"][roomaddsnum]["readFrom"].as<String>() != "")
+                roomradd_format[AddsConfJson["addresses"][roomaddsnum]["readFrom"].as<String>()] = AddsConfJson["addresses"][roomaddsnum]["format"].as<String>();
+              if (AddsConfJson["addresses"][roomaddsnum]["writeTo"].as<String>() != "")
+                WritableAdds[AddsConfJson["addresses"][roomaddsnum]["writeTo"].as<String>()] = AddsConfJson["addresses"][roomaddsnum]["format"].as<String>();
               // roomradd_format["add"] = AddsConfJson["addresses"][roomaddsnum]["readFrom"];
               // roomradd_format["format"] = AddsConfJson["addresses"][roomaddsnum]["format"];
             }
@@ -219,9 +222,10 @@ String CalReadAdss(String RoomID , String RoomsConfigs, int RoomJsonSize, String
               Serial.println(AddsConfJson["addresses"][roomaddsnum]["values"].size());
               for(int ValueNum = 0; ValueNum < AddsConfJson["addresses"][roomaddsnum]["values"].size(); ValueNum++)
               {
-                serializeJsonPretty(AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum], Serial);
-                Serial.println();
-                roomradd_format[AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum]["read"].as<String>()] = AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum]["readFormat"].as<String>();
+                if (AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum]["read"].as<String>() != "")
+                  roomradd_format[AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum]["read"].as<String>()] = AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum]["readFormat"].as<String>();
+                if (AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum]["write"].as<String>() != "")
+                  WritableAdds[AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum]["write"].as<String>()] = AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum]["writeFormat"].as<String>();
               }
             }
           }
@@ -229,8 +233,11 @@ String CalReadAdss(String RoomID , String RoomsConfigs, int RoomJsonSize, String
       }
     }
   }
-  Serial.println("++++++++++++");
+  Serial.println("+++++READ+++++++");
   serializeJsonPretty(ReadbleAdds,Serial);
+  Serial.println("===============\n");
+  Serial.println("+++++Write+++++++");
+  serializeJsonPretty(WritableAdds,Serial);
   Serial.println("===============");
   return "Null";
 }
@@ -280,7 +287,7 @@ void setup() {
   while(TotalAddConf == ""){Serial.println("\n---------------\nTry GET Adds Confing...");TotalAddConf = GetConf(ADD_URL, BUILDING_ID, 15000, Addfilter);delay(500);}
   
   Serial.println("\n========Create Readble Adds with Configs========\n");
-  CalReadAdss(ROOM_ID, TotalRoomsConf, 15000, TotalAddConf, 15000);
+  CalReadWriteAdss(ROOM_ID, TotalRoomsConf, 15000, TotalAddConf, 15000);
 }
 
 void loop() {
