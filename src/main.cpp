@@ -16,7 +16,7 @@ WiFiMulti wifiMulti;
 #define ROOM_ID       "6549e908ea75d4a5df95ad2a"
 #define LEDPIN BUILTIN_LED
 
-DynamicJsonDocument ReadbleAdds(2000); //{"roomID" : {"add" : , "format" : }}
+DynamicJsonDocument ReadbleAdds(2000); //{"roomID" : {"add" : {"id" : "12456879", "format" : "1Bit", "type" : "temp" } } }
 DynamicJsonDocument WritableAdds(2000); //{"1/1/2" : "format"}
 
 unsigned long lastTime = 0;
@@ -210,7 +210,12 @@ String CalReadWriteAdss(String RoomID , String RoomsConfigs, int RoomJsonSize, S
             {
               Serial.println("Founded!");
               if (AddsConfJson["addresses"][roomaddsnum]["readFrom"].as<String>() != "")
-                roomradd_format[AddsConfJson["addresses"][roomaddsnum]["readFrom"].as<String>()] = AddsConfJson["addresses"][roomaddsnum]["format"].as<String>();
+              {
+                JsonObject addID_format = roomradd_format.createNestedObject(AddsConfJson["addresses"][roomaddsnum]["readFrom"].as<String>());
+                addID_format["format"] = AddsConfJson["addresses"][roomaddsnum]["format"].as<String>();
+                addID_format["id"]     = AddsConfJson["addresses"][roomaddsnum]["_id"].as<String>();
+                addID_format["type"]   = AddsConfJson["addresses"][roomaddsnum]["rangeType"].as<String>();
+              }
               if (AddsConfJson["addresses"][roomaddsnum]["writeTo"].as<String>() != "")
                 WritableAdds[AddsConfJson["addresses"][roomaddsnum]["writeTo"].as<String>()] = AddsConfJson["addresses"][roomaddsnum]["format"].as<String>();
               // roomradd_format["add"] = AddsConfJson["addresses"][roomaddsnum]["readFrom"];
@@ -223,7 +228,12 @@ String CalReadWriteAdss(String RoomID , String RoomsConfigs, int RoomJsonSize, S
               for(int ValueNum = 0; ValueNum < AddsConfJson["addresses"][roomaddsnum]["values"].size(); ValueNum++)
               {
                 if (AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum]["read"].as<String>() != "")
-                  roomradd_format[AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum]["read"].as<String>()] = AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum]["readFormat"].as<String>();
+                {
+                  JsonObject addID_format = roomradd_format.createNestedObject(AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum]["read"].as<String>());
+                  addID_format["format"] = AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum]["readFormat"].as<String>();
+                  addID_format["id"]     = AddsConfJson["addresses"][roomaddsnum]["_id"].as<String>();
+                  addID_format["type"]   = AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum]["readValueRangeType"].as<String>();
+                }
                 if (AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum]["write"].as<String>() != "")
                   WritableAdds[AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum]["write"].as<String>()] = AddsConfJson["addresses"][roomaddsnum]["values"][ValueNum]["writeFormat"].as<String>();
               }
