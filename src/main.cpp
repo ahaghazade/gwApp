@@ -2,22 +2,29 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <WiFiMulti.h>
+#include <HTTPClient.h>
+#include <ESPAsyncWebServer.h>
 
 WiFiMulti wifiMulti; 
+WiFiClient client;
 
-#define LOGIN_URL     "http://185.110.190.226:4001/api/users/login"
-#define BUILDING_URL  "http://185.110.190.226:4001/api/buildings"
-#define ROOM_URL      "http://185.110.190.226:4001/api/rooms?buildingId="
-#define ADD_URL       "http://185.110.190.226:4001/api/addresses?buildingId="
+AsyncWebServer GWSERVER(4001);
+
+#define LOGIN_URL     "http://78.157.34.36:4001/api/users/login" 
+#define BUILDING_URL  "http://78.157.34.36:4001/api/buildings"
+#define ROOM_URL      "http://78.157.34.36:4001/api/rooms?buildingId="
+#define ADD_URL       "http://78.157.34.36:4001/api/addresses?buildingId="
 
 #define LOGIN_USER    "root"
 #define LOGIN_PASS    "123"
-#define BUILDING_ID   "6542276fea75d4a5df95a7d0"
-#define ROOM_ID       "6549e908ea75d4a5df95ad2a"
+#define ROOM_ID       "6565064afabf334123776f06"
+String  BUILDING_ID=  "6565061afabf334123776ecc";
+
 #define LEDPIN BUILTIN_LED
 
-DynamicJsonDocument ReadbleAdds(2000); //{"roomID" : {"add" : {"id" : "12456879", "format" : "1Bit", "type" : "temp" } } }
-DynamicJsonDocument WritableAdds(2000); //{"1/1/2" : "format"}
+DynamicJsonDocument ReadbleAdds(2000);      //FROM APP        //{"roomID" : {"add" : {"id" : "12456879", "format" : "1Bit", "type" : "temp" } } }
+DynamicJsonDocument WritableAdds(2000);     //FROM APP        //{"1/1/2" : "format"}
+DynamicJsonDocument APPadd_MAP_Actadd(500); //FROM GW CONFIG  //{"1/1/2": IO(4)}
 
 unsigned long lastTime = 0;
 unsigned long timerDelay = 5000;
@@ -186,8 +193,9 @@ String CalReadWriteAdss(String RoomID , String RoomsConfigs, int RoomJsonSize, S
     Serial.println(error.f_str());
     return "NULL";
   }
-  //Cleare List
+  //Cleare Lists
   ReadbleAdds.clear();
+  WritableAdds.clear();
   //check all addresses in rooms
   for(int roomnum = 0 ; roomnum < RoomsConfJson["rooms"].size() ; roomnum++)
   {
@@ -245,28 +253,15 @@ String CalReadWriteAdss(String RoomID , String RoomsConfigs, int RoomJsonSize, S
   }
   Serial.println("+++++READ+++++++");
   serializeJsonPretty(ReadbleAdds,Serial);
-  Serial.println("===============\n");
+  Serial.println("\n===============\n");
   Serial.println("+++++Write+++++++");
   serializeJsonPretty(WritableAdds,Serial);
-  Serial.println("===============");
+  Serial.println("\n===============");
   return "Null";
 }
 
-void setup() {
-  Serial.begin(115200);
-  pinMode(LED_BUILTIN, OUTPUT);
-  WiFi.mode(WIFI_STA);
-  wifiMulti.addAP("MobinNet20", "K6YJScyY");
-  wifiMulti.addAP("Irancell-TF-i60-B6A7_1", "@tm@1425#@tm@");
-  Serial.println("Connecting Wifi...");
-  if(wifiMulti.run() == WL_CONNECTED) {
-    Serial.println("");
-    Serial.println("WiFi connected");
-    Serial.println("IP address: ");
-    Serial.println(WiFi.localIP());
-  }
-  delay(1000);
-  //------------ GET CONFIGS FROM SERVER -----------------
+void GetTotalConf(String BUILDINGID)
+{
   //Wait until login success
   while(!Login(LOGIN_USER,LOGIN_PASS)){delay(500);Serial.println("Attempting to LOGIN...");}
   Serial.println("\n---------------\nTry GET Buildings Confing...");
@@ -277,7 +272,7 @@ void setup() {
   filter_rooms_0["_id"] = true;
   filter_rooms_0["addresses"] = true;
   String TotalRoomsConf = "";
-  while(TotalRoomsConf == ""){Serial.println("\n---------------\nTry GET Rooms Confing...");TotalRoomsConf = GetConf(ROOM_URL, BUILDING_ID,15000 , roomfilter);delay(500);}
+  while(TotalRoomsConf == ""){Serial.println("\n---------------\nTry GET Rooms Confing...");TotalRoomsConf = GetConf(ROOM_URL, BUILDINGID, 15000, roomfilter);delay(500);}
   // //Wait until Get addresses conf
   StaticJsonDocument<240> Addfilter;
   JsonObject filter_addresses_0 = Addfilter["addresses"].createNestedObject();
@@ -294,10 +289,115 @@ void setup() {
   filter_addresses_0_values_0["writeFormat"] = true;
   filter_addresses_0_values_0["writeValueRangeType"] = true;
   String TotalAddConf = "";
-  while(TotalAddConf == ""){Serial.println("\n---------------\nTry GET Adds Confing...");TotalAddConf = GetConf(ADD_URL, BUILDING_ID, 15000, Addfilter);delay(500);}
+  while(TotalAddConf == ""){Serial.println("\n---------------\nTry GET Adds Confing...");TotalAddConf = GetConf(ADD_URL, BUILDINGID, 15000, Addfilter);delay(500);}
   
   Serial.println("\n========Create Readble Adds with Configs========\n");
   CalReadWriteAdss(ROOM_ID, TotalRoomsConf, 15000, TotalAddConf, 15000);
+}
+
+String WriteReq(int value, String Add)
+{
+  String Res = "";
+  DynamicJsonDocument ResStatus(150); 
+  ResStatus["addressId"] = Add;
+
+  if(WritableAdds.containsKey(Add) && APPadd_MAP_Actadd.containsKey(Add))
+  {
+    digitalWrite(APPadd_MAP_Actadd[Add], value);
+    ResStatus["message"] = "Write Status: Success";
+    ResStatus["status"]   = 200;
+  }
+  else
+  {
+    ResStatus["status"]   = 404;
+    ResStatus["message"]  = "Add " + String(Add) + " is not defined!";
+  }
+  serializeJsonPretty(ResStatus, Res);
+  Serial.println(Res);
+  return Res;
+}
+
+void setup() {
+  Serial.begin(115200);
+  APPadd_MAP_Actadd["0/0/1"] = LEDPIN;
+
+  pinMode(LEDPIN, OUTPUT);
+  WiFi.mode(WIFI_STA);
+  wifiMulti.addAP("IGH-Wifi", "Konect210");
+  wifiMulti.addAP("MobinNet20", "K6YJScyY");
+  wifiMulti.addAP("Irancell-TF-i60-B6A7_1", "@tm@1425#@tm@");
+  Serial.println("Connecting Wifi...");
+  if(wifiMulti.run() == WL_CONNECTED) {
+    Serial.println("");
+    Serial.println("WiFi connected");
+    Serial.println("IP address: ");
+    Serial.println(WiFi.localIP());
+  }
+  delay(1000);
+  //------------ GET CONFIGS FROM SERVER -----------------
+  GetTotalConf(BUILDING_ID);
+
+  GWSERVER.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send(200, "text/plain", "Hi! I am ESP32.");
+  });
+  GWSERVER.onRequestBody(
+        [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
+        {
+            if ((request->url() == "/api/gateway/write") &&
+                (request->method() == HTTP_POST))
+            {
+                const size_t        JSON_DOC_SIZE   = 512U;
+                DynamicJsonDocument jsonDoc(JSON_DOC_SIZE);
+                
+                if (DeserializationError::Ok == deserializeJson(jsonDoc, (const char*)data))
+                {
+                    JsonObject obj = jsonDoc.as<JsonObject>();
+                    Serial.print("Write Req: ");
+                    serializeJsonPretty(jsonDoc, Serial);
+                    Serial.println();
+                    
+                    if (obj.containsKey("value") && obj.containsKey("addressId"))
+                    {
+                      Serial.println("Json is valid");
+                      int WriteValue  = obj["value"].as<int>();
+                      String WriteAdd = obj["addressId"].as<String>();
+                      String Response = WriteReq(WriteValue, WriteAdd);
+                      request->send(200, "application/json", Response);
+                    }
+                    else
+                      Serial.println("Invalid JSON");
+                      request->send(200, "application/json", "{ \"status\": 404, \"massage\" : \"Invalid JSON\" , \"addressId\":\"-1/-1/-1\"}");
+                }
+            }
+
+            else if ((request->url() == "/api/gateway/update") &&
+                (request->method() == HTTP_POST))
+            {
+                const size_t        JSON_DOC_SIZE   = 512U;
+                DynamicJsonDocument jsonDoc(JSON_DOC_SIZE);
+                
+                if (DeserializationError::Ok == deserializeJson(jsonDoc, (const char*)data))
+                {
+                    JsonObject obj = jsonDoc.as<JsonObject>();
+                    Serial.print("Write Req: ");
+                    serializeJsonPretty(jsonDoc, Serial);
+                    Serial.println();
+                    
+                    if (obj.containsKey("buildingId"))
+                    {
+                      Serial.println("Json is valid");
+                      BUILDING_ID = obj["buildingId"].as<String>();
+                      GetTotalConf(BUILDING_ID);
+                      request->send(200, "application/json", "{\"status\" : 200 , \"message\" : \"Update Status: Success\"}" );
+                    }
+                    else
+                      Serial.println("Invalid JSON");
+                      request->send(200, "application/json", "{ \"status\": 404, \"massage\" : \"Invalid JSON\" }");
+                }
+            }
+        }
+    );
+    GWSERVER.begin();
 }
 
 void loop() {
