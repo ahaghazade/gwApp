@@ -31,27 +31,25 @@ void setup() {
   data.add(48.756080);
   data.add(2.302038);
 
-  // Generate the minified JSON and send it to the Serial port.
-  //
-  serializeJson(doc, Serial);
-  // The above line prints:
-  // {"sensor":"gps","time":1351824120,"data":[48.756080,2.302038]}
-
   // Start a new line
   Serial.println();
 
   // Generate the prettified JSON and send it to the Serial port.
   //
   serializeJsonPretty(doc, Serial);
-  // The above line prints:
-  // {
-  //   "sensor": "gps",
-  //   "time": 1351824120,
-  //   "data": [
-  //     48.756080,
-  //     2.302038
-  //   ]
-  // }
+//   // The above line prints:
+// {
+//   "sensor": "gps",
+//   "time": 1351824120,
+//   "room": {
+//     "1/1/1": "1Bit",
+//     "1/1/2": "2Bit"
+//   },
+//   "listData": [
+//     48.75608,
+//     2.302038
+//   ]
+// }
 }
 
 void loop() {
