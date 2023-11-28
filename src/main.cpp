@@ -4,6 +4,7 @@
 #include <WiFiMulti.h>
 #include <HTTPClient.h>
 #include <ESPAsyncWebServer.h>
+#include <ESPmDNS.h>
 
 WiFiMulti wifiMulti; 
 WiFiClient client;
@@ -303,7 +304,7 @@ String WriteReq(int value, String Add)
 
   if(WritableAdds.containsKey(Add) && APPadd_MAP_Actadd.containsKey(Add))
   {
-    digitalWrite(APPadd_MAP_Actadd[Add], value);
+    digitalWrite(APPadd_MAP_Actadd[Add].as<int>(), value);
     ResStatus["message"] = "Write Status: Success";
     ResStatus["status"]   = 200;
   }
@@ -317,9 +318,61 @@ String WriteReq(int value, String Add)
   return Res;
 }
 
+String ReadReq(String RoomReadID)
+{
+  String Res = "";
+  DynamicJsonDocument ResStatus(500); 
+  ResStatus["status"] = 200;
+
+  // Add the values to the JSON document
+  JsonArray resultArray = ResStatus.createNestedArray("Result");
+
+  bool RoomFounded = false;
+
+
+  for (JsonPair roID : ReadbleAdds.as<JsonObject>())//{"roomID" : {"0/0/1" : {"id" : "12456879", "format" : "1Bit", "type" : "temp" } } }
+  {
+    if(strcmp(roID.key().c_str(), RoomReadID.c_str()) == 0) //RoomID Founded
+    {
+      Serial.println("Room Founded!");
+      RoomFounded = true;
+      for (JsonPair reADD : roID.value().as<JsonObject>())// {"0/0/1" : {"id" : "12456879", "format" : "1Bit", "type" : "temp" }}
+      {
+        JsonObject addConf = reADD.value().as<JsonObject>();
+        String readADD = reADD.key().c_str();
+        if(APPadd_MAP_Actadd.containsKey(readADD))
+        {
+          JsonObject resultObject = resultArray.createNestedObject();
+          resultObject["Id"] = addConf["id"];
+          resultObject["MultiValue"] = nullptr;
+          resultObject["Value"] = digitalRead(APPadd_MAP_Actadd[readADD].as<int>());
+        }
+      }
+    }
+  }
+  if(RoomFounded)
+  {
+    Serial.println("=====Read Res");
+    serializeJsonPretty(ResStatus, Serial);
+    Serial.println();
+    serializeJson(ResStatus, Res);
+  }
+  else
+  {
+    Res = "{\"message\": \"RoomId not found\",\"status\": 404}";
+    Serial.println("=====Read Res");
+    Serial.println(Res);
+  }
+  return Res;
+}
+
+
 void setup() {
   Serial.begin(115200);
   APPadd_MAP_Actadd["0/0/1"] = LEDPIN;
+  APPadd_MAP_Actadd["0/0/2"] = LEDPIN;
+  APPadd_MAP_Actadd["0/0/3"] = LEDPIN;
+  APPadd_MAP_Actadd["0/0/4"] = LEDPIN;
 
   pinMode(LEDPIN, OUTPUT);
   WiFi.mode(WIFI_STA);
@@ -333,6 +386,12 @@ void setup() {
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
   }
+  while(!MDNS.begin("konectgw"))
+  {
+     Serial.println("Starting mDNS...");
+     delay(1000);
+  }
+  Serial.println("MDNS started");
   delay(1000);
   //------------ GET CONFIGS FROM SERVER -----------------
   GetTotalConf(BUILDING_ID);
@@ -370,6 +429,32 @@ void setup() {
                 }
             }
 
+            else if ((request->url() == "/api/gateway/read") &&
+                (request->method() == HTTP_POST))
+            {
+                const size_t        JSON_DOC_SIZE   = 512U;
+                DynamicJsonDocument jsonDoc(JSON_DOC_SIZE);
+                
+                if (DeserializationError::Ok == deserializeJson(jsonDoc, (const char*)data))
+                {
+                    JsonObject obj = jsonDoc.as<JsonObject>();
+                    Serial.print("Read Req: ");
+                    serializeJsonPretty(jsonDoc, Serial);
+                    Serial.println();
+                    
+                    if (obj.containsKey("RoomId"))
+                    {
+                      Serial.println("Json is valid");
+                      String RoomId = obj["RoomId"].as<String>();
+                      String Response = ReadReq(RoomId);
+                      request->send(200, "application/json", Response);
+                    }
+                    else
+                      Serial.println("Invalid JSON");
+                      request->send(200, "application/json", "{ \"status\": 404, \"massage\" : \"Invalid JSON\" }");
+                }
+            }
+
             else if ((request->url() == "/api/gateway/update") &&
                 (request->method() == HTTP_POST))
             {
@@ -397,7 +482,8 @@ void setup() {
             }
         }
     );
-    GWSERVER.begin();
+
+  GWSERVER.begin();
 }
 
 void loop() {
